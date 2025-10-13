@@ -2,6 +2,8 @@ use papaya::HashMap;
 use std::sync::atomic::AtomicUsize;
 use tokio::sync::RwLock;
 
+use crate::message;
+
 pub trait Game {
     type InputMessage;
     type OutputMessage;
@@ -9,9 +11,8 @@ pub trait Game {
 
     fn player_action(
         &mut self,
-        player: usize,
-        message: Self::InputMessage,
-    ) -> Vec<(usize, Self::OutputMessage)>;
+        message: message::InputMessage<usize, Self::InputMessage>,
+    ) -> Vec<message::OutputMessage<usize, Self::OutputMessage>>;
 }
 
 type UserId = usize;
@@ -19,7 +20,7 @@ type GameId = usize;
 
 /// Manages game sessions: Essentially mapping user IDs to player numbers and
 /// creating/destroying games as needed in an async way.
-struct SessionManager<G: Game + Default> {
+pub struct SessionManager<G: Game + Default> {
     games: Vec<RwLock<Option<GameContainer<G>>>>,
     freelist: RwLock<Vec<GameId>>,
     users: HashMap<UserId, GameRef>,
@@ -85,8 +86,8 @@ impl<G: Game + Default> SessionManager<G> {
 
     pub async fn handle_message(
         &self,
-        message: MessageFromUser<G>,
-    ) -> Result<Vec<MessageToUser<G>>, HandleMessageError> {
+        message: message::InputMessage<usize, G::InputMessage>,
+    ) -> Result<Vec<message::OutputMessage<usize, G::OutputMessage>>, HandleMessageError> {
         let Some(&game_ref) = self.users.pin().get(&message.sender).clone() else {
             return Err(HandleMessageError::GameDoesNotExist);
         };
@@ -106,21 +107,23 @@ impl<G: Game + Default> SessionManager<G> {
         else {
             return Err(HandleMessageError::UnexpectedError);
         };
-        let responses = game_container
-            .game
-            .player_action(sender_player_number, message.message);
-        let mapped_responses: Option<Vec<MessageToUser<G>>> = responses
-            .into_iter()
-            .map(
-                |(player_number, message)| match game_container.users.get(player_number) {
-                    Some(&user_id) => Some(MessageToUser {
-                        recipient: user_id,
-                        message,
-                    }),
-                    None => None,
-                },
-            )
-            .collect();
+        let responses = game_container.game.player_action(message::InputMessage {
+            sender: sender_player_number,
+            message: message.message,
+        });
+        let mapped_responses: Option<Vec<message::OutputMessage<usize, G::OutputMessage>>> =
+            responses
+                .into_iter()
+                .map(
+                    |message| match game_container.users.get(message.recipient) {
+                        Some(&user_id) => Some(message::OutputMessage {
+                            recipient: user_id,
+                            message: message.message,
+                        }),
+                        None => None,
+                    },
+                )
+                .collect();
 
         match mapped_responses {
             Some(responses) => Ok(responses),
@@ -172,14 +175,6 @@ enum DestroyGameError {
 }
 
 // Handling player actions
-struct MessageFromUser<G: Game> {
-    sender: UserId,
-    message: G::InputMessage,
-}
-struct MessageToUser<G: Game> {
-    recipient: UserId,
-    message: G::OutputMessage,
-}
 enum HandleMessageError {
     GameDoesNotExist,
     UnexpectedError,
@@ -218,12 +213,14 @@ impl Game for DummyGame {
     const NUM_PLAYERS: usize = 3;
     fn player_action(
         &mut self,
-        player: usize,
-        message: Self::InputMessage,
-    ) -> Vec<(usize, Self::OutputMessage)> {
-        let DummyInputMessage::UserSays(num) = message;
+        message: message::InputMessage<usize, Self::InputMessage>,
+    ) -> Vec<message::OutputMessage<usize, Self::OutputMessage>> {
+        let DummyInputMessage::UserSays(num) = message.message;
         (0..Self::NUM_PLAYERS)
-            .map(|i| (i, DummyOutputMessage::OtherUserSays(player, num)))
+            .map(|i| message::OutputMessage {
+                recipient: i,
+                message: DummyOutputMessage::OtherUserSays(message.sender, num),
+            })
             .collect()
     }
 }
@@ -258,7 +255,7 @@ mod tests {
         };
 
         for sender in users.iter() {
-            let msg = MessageFromUser {
+            let msg = message::InputMessage {
                 sender: *sender,
                 message: DummyInputMessage::UserSays(99),
             };
