@@ -70,9 +70,19 @@ async fn main() {
             },
         );
 
-    // let routes = index.or(index_js).or(index_css).or(images).or(snap);
-    let index = warp::path::end().map(|| warp::reply::html(""));
-    let routes = index.or(create).or(join);
+    let index = warp::path::end().and(
+        warp::fs::file("../frontend/index.html")
+    );
+    let index_js = warp::path("main.js").and(
+        warp::fs::file("../frontend/main.js")
+    );
+    let index_css = warp::path("main.css").and(
+        warp::fs::file("../frontend/main.css")
+    );
+    let images = warp::path("images").and(
+        warp::fs::dir ("../frontend/images")
+    );
+    let routes = index.or(index_js).or(index_css).or(images).or(create).or(join);
 
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
