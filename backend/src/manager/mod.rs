@@ -132,7 +132,7 @@ impl<G: Game + Default> SessionManager<G> {
     }
 
     /// Destroy a game and return vec of users to notify
-    async fn destroy_users_game(&self, user: UserId) -> Result<Vec<UserId>, DestroyGameError> {
+    pub async fn destroy_users_game(&self, user: UserId) -> Result<Vec<UserId>, DestroyGameError> {
         let Some(&game_ref) = self.users.pin().get(&user) else {
             // User does not currently exist
             return Err(DestroyGameError::UnexpectedError);
@@ -152,11 +152,12 @@ impl<G: Game + Default> SessionManager<G> {
         }
 
         // Remove users from hashmap
-        let users_map = self.users.pin();
-        for user in game_container.users.iter() {
-            users_map.remove(user);
+        {
+            let users_map = self.users.pin();
+            for user in game_container.users.iter() {
+                users_map.remove(user);
+            }
         }
-        drop(users_map);
 
         // Add the slot to the freelist
         self.freelist.write().await.push(game_ref.index);
@@ -167,15 +168,15 @@ impl<G: Game + Default> SessionManager<G> {
 
 // Game creation
 type NewGame = Vec<UserId>;
-enum CreateGameError {
+pub enum CreateGameError {
     ServerFull,
 }
-enum DestroyGameError {
+pub enum DestroyGameError {
     UnexpectedError,
 }
 
 // Handling player actions
-enum HandleMessageError {
+pub enum HandleMessageError {
     GameDoesNotExist,
     UnexpectedError,
 }

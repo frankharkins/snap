@@ -41,7 +41,7 @@ impl InputMessageType {
 
 type InputMessage = message::InputMessage<PlayerNumber, InputMessageType>;
 
-#[derive(Copy, Clone, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum OutputMessageType {
     YourNumber(PlayerNumber),
     CardDrawn {
