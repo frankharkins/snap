@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use futures_util::SinkExt;
-
 use papaya::{HashMap, OccupiedError};
 use serde::{Deserialize, Serialize};
 
@@ -33,6 +31,7 @@ enum OutputMessageType {
     GameDestroyed,
     ServerFull,
     UserAlreadyConnected,
+    GameNotFound,
     GameUpdate(game::OutputMessageType),
 }
 
@@ -78,11 +77,11 @@ async fn main() {
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
 
-async fn create(mut ws: warp::ws::WebSocket, state: Arc<ServerState>) {
+async fn create(ws: warp::ws::WebSocket, state: Arc<ServerState>) {
     match state.manager.create().await {
         Ok(users) => {
             let (this_user, other_user) = (users[0], users[1]);
-            let ws_handler = create_websocket_handler(this_user, ws, &state);
+            let ws_handler = create_linked_websocket(this_user, ws, &state);
             match state.users.pin().try_insert(this_user, ws_handler) {
                 Ok(handler_ref) => {
                     // Let the user know the connection was successful and give them the
@@ -102,32 +101,33 @@ async fn create(mut ws: warp::ws::WebSocket, state: Arc<ServerState>) {
             };
         }
         Err(manager::CreateGameError::ServerFull) => {
-            // Manually send one-off message then drop the connection.
-            // No cleanup needed.
-            let message = "{\"ServerFull\":null}";
-            _ = ws.send(warp::ws::Message::text(message)).await;
+            send_message_and_close(ws, OutputMessageType::ServerFull);
         }
     }
 }
 
 async fn join(user_id: usize, ws: warp::ws::WebSocket, state: Arc<ServerState>) {
-    let ws_handler = create_websocket_handler(user_id, ws, &state);
-    match state.users.pin().try_insert(user_id, ws_handler) {
-        Ok(handler_ref) => {
-            // TODO: Send OtherUserJoined message and have client wait for it.
-            // Otherwise, first user can draw cards before the other user joins.
+    if !state.manager.user_exists(user_id) {
+        send_message_and_close(ws, OutputMessageType::GameNotFound);
+        return;
+    };
+    let users_map = state.users.pin();
+    match users_map.contains_key(&user_id) {
+        true => {
+            send_message_and_close(ws, OutputMessageType::UserAlreadyConnected);
+            return;
         }
-        Err(OccupiedError {
-            current: _,
-            not_inserted,
-        }) => {
-            _ = not_inserted.send(OutputMessageType::UserAlreadyConnected);
-            not_inserted.close();
+        false => {
+            let ws_handler = create_linked_websocket(user_id, ws, &state);
+            users_map.insert(user_id, ws_handler);
         }
     };
 }
 
-fn create_websocket_handler(
+/// Create a websocket linked to the user_id's game. Incoming messages will from
+/// this websocket will affect the game, and closing the connection will destroy
+/// the game.
+fn create_linked_websocket(
     user_id: usize,
     ws: warp::ws::WebSocket,
     state: &Arc<ServerState>,
@@ -143,6 +143,14 @@ fn create_websocket_handler(
     WebSocketHandler::new(ws, user_id, on_message, on_disconnect)
 }
 
+/// Use this for websockets that should not be connected to a game, and instead
+/// closed with a message.
+fn send_message_and_close(ws: warp::ws::WebSocket, message: OutputMessageType) {
+    let ws_handler = WebSocketHandler::new(ws, 0, async |_| {}, async || {});
+    _ = ws_handler.send(message);
+    ws_handler.close();
+}
+
 async fn send_message(message: OutputMessage, state: Arc<ServerState>) {
     match state.users.pin().get(&message.recipient) {
         None => return,
@@ -152,8 +160,7 @@ async fn send_message(message: OutputMessage, state: Arc<ServerState>) {
 
 async fn user_disconnected(user_id: usize, state: Arc<ServerState>) {
     let Ok(users_to_drop) = state.manager.destroy_users_game(user_id).await else {
-        // No idea how to recover from this
-        println!("Failed to destroy game :/");
+        // This can happen if the user was never part of a game
         return;
     };
     let users_map = state.users.pin();

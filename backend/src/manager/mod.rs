@@ -33,7 +33,7 @@ impl<G: Game + Default> SessionManager<G> {
             games: Vec::from_iter((0..max_num_games).map(|_| RwLock::new(None))),
             freelist: RwLock::new((0..max_num_games).collect()),
             users: HashMap::default(),
-            id_counter: AtomicUsize::new(0),
+            id_counter: AtomicUsize::new(1),
         }
     }
 
@@ -163,6 +163,10 @@ impl<G: Game + Default> SessionManager<G> {
         self.freelist.write().await.push(game_ref.index);
 
         Ok(game_container.users)
+    }
+
+    pub fn user_exists(&self, user: UserId) -> bool {
+        return self.users.pin().contains_key(&user);
     }
 }
 
