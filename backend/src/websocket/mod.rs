@@ -1,7 +1,7 @@
 use std::fmt;
 use std::marker::PhantomData;
 
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
+use futures_util::{SinkExt, StreamExt, TryFutureExt, select_biased};
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
@@ -44,8 +44,9 @@ impl<I: for<'de> Deserialize<'de> + Send, O: Serialize + fmt::Debug> WebSocketHa
             let cancellation_token = cancellation_token.clone();
             tokio::task::spawn(async move {
                 while let Some(message) = tokio::select! {
+                    biased;
+                    maybe_message = receive_channel.next() => maybe_message,
                     _ = cancellation_token.cancelled() => None,
-                    maybe_message = receive_channel.next() => maybe_message
                 } {
                     ws_out
                         .send(message)
@@ -65,8 +66,9 @@ impl<I: for<'de> Deserialize<'de> + Send, O: Serialize + fmt::Debug> WebSocketHa
             let cancellation_token = cancellation_token.clone();
             tokio::task::spawn(async move {
                 while let Some(result) = tokio::select! {
+                    biased;
+                    maybe_result = ws_in.next() => maybe_result,
                     _ = cancellation_token.cancelled() => None,
-                    maybe_result = ws_in.next() => maybe_result
                 } {
                     match parse_websocket_message(result) {
                         Ok(message) => on_message(message).await,
