@@ -57,6 +57,7 @@ impl<G: Game + Default> SessionManager<G> {
         let Some(next_available_slot) = freelist.pop() else {
             return Err(CreateGameError::ServerFull);
         };
+        drop(freelist);
 
         // Generate new IDs for the players of this game
         let users: Vec<UserId> = (0..G::NUM_PLAYERS).map(|_| self.new_id()).collect();
@@ -131,6 +132,18 @@ impl<G: Game + Default> SessionManager<G> {
         }
     }
 
+    /// Get a IDs of players in the same game
+    pub async fn get_players(&self, user: UserId) -> Result<Vec<UserId>, ()> {
+        let Some(&game_ref) = self.users.pin().get(&user) else {
+            // User does not currently exist
+            return Err(());
+        };
+        match self.games[game_ref.index].read().await.as_ref() {
+            Some(game_container) => Ok(game_container.users.clone()),
+            None => Err(()),
+        }
+    }
+
     /// Destroy a game and return vec of users to notify
     pub async fn destroy_users_game(&self, user: UserId) -> Result<Vec<UserId>, DestroyGameError> {
         let Some(&game_ref) = self.users.pin().get(&user) else {
@@ -163,10 +176,6 @@ impl<G: Game + Default> SessionManager<G> {
         self.freelist.write().await.push(game_ref.index);
 
         Ok(game_container.users)
-    }
-
-    pub fn user_exists(&self, user: UserId) -> bool {
-        return self.users.pin().contains_key(&user);
     }
 }
 

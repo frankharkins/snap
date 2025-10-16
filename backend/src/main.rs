@@ -10,7 +10,7 @@ mod manager;
 mod message;
 mod websocket;
 
-const MAX_NUM_GAMES: usize = 3;
+const MAX_NUM_GAMES: usize = 1000;
 
 type SnapManager = manager::SessionManager<game::Snap>;
 type WebSocketHandler = websocket::WebSocketHandler<InputMessageType, OutputMessageType>;
@@ -27,11 +27,11 @@ type OutputMessage = message::OutputMessage<usize, OutputMessageType>;
 #[derive(Debug, Deserialize, Serialize)]
 enum OutputMessageType {
     GameCreated { other_player_id: usize },
-    OtherUserJoined,
     GameDestroyed,
     ServerFull,
     UserAlreadyConnected,
     GameNotFound,
+    GameStarted,
     GameUpdate(game::OutputMessageType),
 }
 
@@ -88,6 +88,7 @@ async fn main() {
 }
 
 async fn create(ws: warp::ws::WebSocket, state: Arc<ServerState>) {
+    println!("Creating new game");
     match state.manager.create().await {
         Ok(users) => {
             let (this_user, other_user) = (users[0], users[1]);
@@ -117,7 +118,7 @@ async fn create(ws: warp::ws::WebSocket, state: Arc<ServerState>) {
 }
 
 async fn join(user_id: usize, ws: warp::ws::WebSocket, state: Arc<ServerState>) {
-    if !state.manager.user_exists(user_id) {
+    let Ok(all_players_in_game) = state.manager.get_players(user_id).await else {
         send_message_and_close(ws, OutputMessageType::GameNotFound);
         return;
     };
@@ -130,6 +131,12 @@ async fn join(user_id: usize, ws: warp::ws::WebSocket, state: Arc<ServerState>) 
         false => {
             let ws_handler = create_linked_websocket(user_id, ws, &state);
             users_map.insert(user_id, ws_handler);
+
+            // Let everyone know the game has started
+            for player in all_players_in_game.into_iter() {
+                let Some(ws_handler) = users_map.get(&player) else { break; };
+                _ = ws_handler.send(OutputMessageType::GameStarted);
+            }
         }
     };
 }

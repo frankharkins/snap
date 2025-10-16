@@ -16,13 +16,13 @@
 <script type="text/javascript">
 
 // Start the Elm application.
-var app = Elm.Main.init({
+const app = Elm.Main.init({
     node: document.getElementById('myapp')
 });
 
 app.ports.connect.subscribe((uri) => {
   let socket = new WebSocket(uri);
-  app.ports.sendMessage.subscribe((msg) => socket.send(msg));
+  // app.ports.sendMessage.subscribe((msg) => socket.send(msg));
   socket.addEventListener(
     "message",
     (event) => app.ports.messageReceived.send(event.data)
