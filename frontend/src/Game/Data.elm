@@ -24,6 +24,7 @@ type alias Table = {
   , playerTwoNumCards: Int
   , centerDeck: List Game.Cards.Card
   , cardDrawnFrom: Maybe PlayerNumber
+  , lastDrawnTime: Int
   }
 
 newTable : Table
@@ -32,6 +33,7 @@ newTable = {
   , playerTwoNumCards = 26
   , centerDeck = []
   , cardDrawnFrom = Nothing
+  , lastDrawnTime = 0
   }
 
 takeCenter : Table -> PlayerNumber -> Table

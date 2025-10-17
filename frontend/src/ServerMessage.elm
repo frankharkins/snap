@@ -26,7 +26,7 @@ decode wsMsg =
 serverMessageDecoder : JSD.Decoder ServerMessage
 serverMessageDecoder = JSD.oneOf [
   gameCreatedDecoder
-  -- , gameUpdateDecoder
+  , gameUpdateDecoder
   , unitTypeDecoder
   ]
 
@@ -45,3 +45,6 @@ unitTypeDecoder = JSD.string |> (
 gameCreatedDecoder : JSD.Decoder ServerMessage
 gameCreatedDecoder = JSD.field "GameCreated" (JSD.field "other_player_id" JSD.int)
   |> (JSD.map (\id -> GameCreated { other_player_id = id }))
+
+gameUpdateDecoder : JSD.Decoder ServerMessage
+gameUpdateDecoder = JSD.field "GameUpdate" Game.Events.updateDecoder |> JSD.map GameUpdate

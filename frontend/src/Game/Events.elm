@@ -1,6 +1,8 @@
 module Game.Events exposing (..)
 import Game.Data exposing (PlayerNumber)
-import Game.Cards exposing (Card)
+import Game.Cards
+
+import Json.Decode as JSD
 
 -- Possible actions a user can make
 type Action
@@ -17,8 +19,8 @@ type alias TimedUserAction = {
 
 type ServerAction
   = YourNumber PlayerNumber
-  | CardDrawn { from: PlayerNumber, card: Card }
-  | OtherPlayerResponded { action: TimedUserAction, isMistake: Bool }
+  | CardDrawn { from: PlayerNumber, card: Game.Cards.Card }
+  | OtherPlayerResponded { player: PlayerNumber, action: TimedUserAction, isMistake: Bool }
   | PlayerTakesCenter PlayerNumber
   | PlayerWins PlayerNumber
   | GameRestarted
@@ -60,3 +62,55 @@ chooseResponseTimeEmoji responseTime =
         else if responseTime < 975 then "🐢"
         else if responseTime < 1500 then "🐌"
         else "🥔"
+
+updateDecoder : JSD.Decoder ServerAction
+updateDecoder = JSD.oneOf [
+  JSD.field "CardDrawn" (cardDrawnDecoder)
+  , JSD.field "OtherPlayerResponded" (otherPlayerRespondedDecoder)
+  , JSD.field "PlayerTakesCenter" (playerEventDecoder PlayerTakesCenter)
+  , JSD.field "PlayerWins" (playerEventDecoder PlayerWins)
+  , JSD.field "YourNumber" (playerEventDecoder YourNumber)
+  , unitTypeDecoder
+  ]
+
+playerEventDecoder : (PlayerNumber -> b) -> JSD.Decoder b
+playerEventDecoder eventType = JSD.map (\player -> eventType player) playerNumberDecoder
+
+otherPlayerRespondedDecoder :  JSD.Decoder ServerAction
+otherPlayerRespondedDecoder = JSD.map3
+  (\player -> \timedAction -> \isMistake -> OtherPlayerResponded { player = player, action = timedAction, isMistake = isMistake })
+  (JSD.field "player" playerNumberDecoder)
+  (JSD.field "msg" timedActionDecoder)
+  (JSD.field "is_mistake" JSD.bool)
+
+timedActionDecoder : JSD.Decoder TimedUserAction
+timedActionDecoder = JSD.oneOf [
+  JSD.map (\time -> { responseTime = time, action = Draw }) (JSD.field "Draw" JSD.int)
+  , JSD.map (\time -> { responseTime = time, action = Snap }) (JSD.field "Snap" JSD.int)
+  , JSD.map (\time -> { responseTime = time, action = NoResponse }) (JSD.field "NoResponse" JSD.int)
+  , JSD.map (\time -> { responseTime = time, action = PlayAgain }) (JSD.field "PlayAgain" JSD.int)
+  ]
+
+
+cardDrawnDecoder : JSD.Decoder ServerAction
+cardDrawnDecoder = JSD.map2
+  (\player -> \card -> CardDrawn { from = player, card = card })
+  (JSD.field "from" playerNumberDecoder)
+  (JSD.field "card" Game.Cards.cardDecoder)
+
+playerNumberDecoder : JSD.Decoder Game.Data.PlayerNumber
+playerNumberDecoder = JSD.int |> JSD.andThen (
+  \i -> case i of
+    0 -> JSD.succeed Game.Data.One
+    1 -> JSD.succeed Game.Data.Two
+    _ -> JSD.fail "Unexpected player number"
+  )
+
+unitTypeDecoder : JSD.Decoder ServerAction
+unitTypeDecoder = JSD.string |> (
+  JSD.map (\s -> case s of
+      "GameRestarted" -> GameRestarted
+      "SomethingWentWrong" -> SomethingWentWrong
+      _ -> SomethingWentWrong
+    )
+  )

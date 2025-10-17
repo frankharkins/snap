@@ -22,7 +22,7 @@ const app = Elm.Main.init({
 
 app.ports.connect.subscribe((uri) => {
   let socket = new WebSocket(uri);
-  // app.ports.sendMessage.subscribe((msg) => socket.send(msg));
+  app.ports.sendMessage.subscribe((msg) => socket.send(msg));
   socket.addEventListener(
     "message",
     (event) => app.ports.messageReceived.send(event.data)
