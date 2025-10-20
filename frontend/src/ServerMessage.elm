@@ -4,7 +4,6 @@ module ServerMessage exposing (ServerMessage(..), decode)
 import Json.Decode as JSD
 
 import Game.Events
-import Game.Data exposing (PlayerNumber(..), playerNumberToString)
 
 type ServerMessage
   = GameCreated { other_player_id: Int }
@@ -12,7 +11,7 @@ type ServerMessage
   | ServerFull
   | UserAlreadyConnected
   | GameNotFound
-  | GameStarted
+  | GameStarted { yourNumber: Game.Events.PlayerNumber }
   | GameUpdate Game.Events.ServerAction
   | UnknownMessage
 
@@ -26,6 +25,7 @@ decode wsMsg =
 serverMessageDecoder : JSD.Decoder ServerMessage
 serverMessageDecoder = JSD.oneOf [
   gameCreatedDecoder
+  , gameStartedDecoder
   , gameUpdateDecoder
   , unitTypeDecoder
   ]
@@ -37,7 +37,6 @@ unitTypeDecoder = JSD.string |> (
       "GameDestroyed" -> GameDestroyed
       "UserAlreadyConnected" -> UserAlreadyConnected
       "GameNotFound" -> GameNotFound
-      "GameStarted" -> GameStarted
       _ -> UnknownMessage
     )
   )
@@ -45,6 +44,11 @@ unitTypeDecoder = JSD.string |> (
 gameCreatedDecoder : JSD.Decoder ServerMessage
 gameCreatedDecoder = JSD.field "GameCreated" (JSD.field "other_player_id" JSD.int)
   |> (JSD.map (\id -> GameCreated { other_player_id = id }))
+
+
+gameStartedDecoder : JSD.Decoder ServerMessage
+gameStartedDecoder = JSD.field "GameStarted" (JSD.field "your_number" Game.Events.playerNumberDecoder)
+  |> (JSD.map (\num -> GameStarted { yourNumber = num }))
 
 gameUpdateDecoder : JSD.Decoder ServerMessage
 gameUpdateDecoder = JSD.field "GameUpdate" Game.Events.updateDecoder |> JSD.map GameUpdate

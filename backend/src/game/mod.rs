@@ -9,7 +9,7 @@ use crate::message;
 type ResponseTimeMs = u32;
 
 /// Player's position at the table
-type PlayerNumber = usize;
+pub type PlayerNumber = usize;
 
 /// In case I want to generalize later
 const NUM_PLAYERS: usize = 2;
@@ -44,7 +44,6 @@ type InputMessage = message::InputMessage<PlayerNumber, InputMessageType>;
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum OutputMessageType {
-    YourNumber(PlayerNumber),
     CardDrawn {
         card: cards::Card,
         from: PlayerNumber,

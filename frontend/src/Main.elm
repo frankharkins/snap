@@ -12,6 +12,7 @@ import Game.Events
 import WebSocket
 import ServerMessage
 import Task
+import Platform.Cmd as Cmd
 
 main : Program () Model Msg
 main =
@@ -93,7 +94,7 @@ update msg model =
         WebSocket.MessageReceived wsMsg -> case (ServerMessage.decode wsMsg) of
           ServerMessage.ServerFull -> errorState "The server is full"
           ServerMessage.GameNotFound -> errorState "Couldn't find that game"
-          ServerMessage.GameStarted -> (InGame Game.Data.newTable, updateLastDrawnTime)
+          ServerMessage.GameStarted data -> (InGame (Game.Data.newTable data.yourNumber), updateLastDrawnTime)
           ServerMessage.GameCreated data -> (WaitingForPlayer { otherPlayerId = String.fromInt data.other_player_id }, Cmd.none)
           _ -> unexpectedError
 
@@ -104,7 +105,7 @@ update msg model =
         WebSocket.ConnectionLost _ -> lostConnectionError
         WebSocket.ConnectionStarted _ -> unexpectedError
         WebSocket.MessageReceived wsMsg -> case (ServerMessage.decode wsMsg) of
-          ServerMessage.GameStarted -> (InGame Game.Data.newTable, updateLastDrawnTime)
+          ServerMessage.GameStarted data -> (InGame (Game.Data.newTable data.yourNumber), updateLastDrawnTime)
           ServerMessage.GameDestroyed -> unexpectedError
           _ -> unexpectedError
 
@@ -114,9 +115,12 @@ update msg model =
         WebSocket.ConnectionStarted _ -> unexpectedError
         WebSocket.MessageReceived wsMsg -> case (ServerMessage.decode wsMsg) of
           ServerMessage.GameDestroyed -> errorState "The game was destroyed"
-          ServerMessage.GameUpdate gameEvent -> case gameEvent of
-            Game.Events.CardDrawn cardEvent -> (model, updateLastDrawnTime) --TODO
-            _ -> (model, Cmd.none) -- TODO
+          ServerMessage.GameUpdate gameEvent -> let newModel = InGame (Game.Data.updateTable gameEvent table)
+            in case gameEvent of
+              Game.Events.CardDrawn _ ->  (newModel, updateLastDrawnTime)
+              Game.Events.PlayerTakesCenter _ ->  (newModel, updateLastDrawnTime)
+              Game.Events.GameRestarted ->  (newModel, updateLastDrawnTime)
+              _ -> (newModel, Cmd.none)
           _ -> unexpectedError
       ClientEvent event -> case event of
         SetLastDrawTime time -> (

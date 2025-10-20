@@ -31,7 +31,7 @@ enum OutputMessageType {
     ServerFull,
     UserAlreadyConnected,
     GameNotFound,
-    GameStarted,
+    GameStarted { your_number: game::PlayerNumber },
     GameUpdate(game::OutputMessageType),
 }
 
@@ -133,9 +133,9 @@ async fn join(user_id: usize, ws: warp::ws::WebSocket, state: Arc<ServerState>) 
             users_map.insert(user_id, ws_handler);
 
             // Let everyone know the game has started
-            for player in all_players_in_game.into_iter() {
-                let Some(ws_handler) = users_map.get(&player) else { break; };
-                _ = ws_handler.send(OutputMessageType::GameStarted);
+            for (your_number, player_id) in all_players_in_game.into_iter().enumerate() {
+                let Some(ws_handler) = users_map.get(&player_id) else { break; };
+                _ = ws_handler.send(OutputMessageType::GameStarted { your_number });
             }
         }
     };

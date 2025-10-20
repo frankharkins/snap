@@ -1,8 +1,9 @@
 module Game.Events exposing (..)
-import Game.Data exposing (PlayerNumber)
 import Game.Cards
 
 import Json.Decode as JSD
+
+type PlayerNumber = One | Two
 
 -- Possible actions a user can make
 type Action
@@ -18,8 +19,7 @@ type alias TimedUserAction = {
     }
 
 type ServerAction
-  = YourNumber PlayerNumber
-  | CardDrawn { from: PlayerNumber, card: Game.Cards.Card }
+  = CardDrawn { from: PlayerNumber, card: Game.Cards.Card }
   | OtherPlayerResponded { player: PlayerNumber, action: TimedUserAction, isMistake: Bool }
   | PlayerTakesCenter PlayerNumber
   | PlayerWins PlayerNumber
@@ -69,7 +69,6 @@ updateDecoder = JSD.oneOf [
   , JSD.field "OtherPlayerResponded" (otherPlayerRespondedDecoder)
   , JSD.field "PlayerTakesCenter" (playerEventDecoder PlayerTakesCenter)
   , JSD.field "PlayerWins" (playerEventDecoder PlayerWins)
-  , JSD.field "YourNumber" (playerEventDecoder YourNumber)
   , unitTypeDecoder
   ]
 
@@ -98,11 +97,11 @@ cardDrawnDecoder = JSD.map2
   (JSD.field "from" playerNumberDecoder)
   (JSD.field "card" Game.Cards.cardDecoder)
 
-playerNumberDecoder : JSD.Decoder Game.Data.PlayerNumber
+playerNumberDecoder : JSD.Decoder PlayerNumber
 playerNumberDecoder = JSD.int |> JSD.andThen (
   \i -> case i of
-    0 -> JSD.succeed Game.Data.One
-    1 -> JSD.succeed Game.Data.Two
+    0 -> JSD.succeed One
+    1 -> JSD.succeed Two
     _ -> JSD.fail "Unexpected player number"
   )
 
