@@ -30,10 +30,10 @@ type ServerAction
 actionToJson : Action -> Int -> String
 actionToJson action responseTime =
   case action of
-    Draw -> "{\"Draw\":" ++ String.fromInt responseTime ++ "}"
-    Snap -> "{\"Snap\":" ++ String.fromInt responseTime ++ "}"
-    NoResponse -> "{\"NoResponse\":null}"
-    PlayAgain -> "{\"PlayAgain\":null}"
+    Draw -> "{\"GameUpdate\":{\"Draw\":" ++ String.fromInt responseTime ++ "}}"
+    Snap -> "{\"GameUpdate\":{\"Snap\":" ++ String.fromInt responseTime ++ "}}"
+    NoResponse -> "{\"GameUpdate\":{\"NoResponse\":null}}"
+    PlayAgain -> "{\"GameUpdate\":{\"PlayAgain\":null}}"
 
 
 

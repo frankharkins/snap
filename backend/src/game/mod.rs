@@ -5,6 +5,7 @@ use crate::manager;
 use crate::message;
 
 /// Milliseconds taken for user to respond, measured by their browser
+/// 2^32 ms ~ 50 days
 type ResponseTimeMs = u32;
 
 /// Player's position at the table

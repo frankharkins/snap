@@ -46,6 +46,7 @@ type ClientEvent
   | GameAction Game.Events.Action
   -- Events triggered automatically
   | SetLastDrawTime Time.Posix
+  | SubmitGameEvent Game.Events.Action Time.Posix
 
 type Msg
   = ClientEvent ClientEvent
@@ -62,6 +63,10 @@ lostConnectionError = errorState "Lost connection to the server"
 
 updateLastDrawnTime : Cmd Msg
 updateLastDrawnTime = Task.perform (\t -> ClientEvent (SetLastDrawTime t)) Time.now
+
+-- To submit a game action, we need to get the current time
+submitGameEvent : Game.Events.Action -> Cmd Msg
+submitGameEvent action = Task.perform (\t -> ClientEvent (SubmitGameEvent action t)) Time.now
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -118,12 +123,9 @@ update msg model =
           InGame { table | lastDrawnTime = Time.posixToMillis (Debug.log "time: " time) }
           , Cmd.none
           )
-        GameAction action -> case action of
-          -- TODO: We're sending last drawn time when we should be sending difference between that and now
-          Game.Events.Draw -> (model, WebSocket.sendMessage ("{\"GameUpdate\":{\"Draw\":" ++ String.fromInt (table.lastDrawnTime) ++ "}}"))
-          Game.Events.Snap -> (model, WebSocket.sendMessage ("{\"GameUpdate\":{\"Snap\":" ++ String.fromInt (table.lastDrawnTime) ++ "}}"))
-          Game.Events.NoResponse -> (model, Cmd.none)
-          Game.Events.PlayAgain -> (model, Cmd.none)
+        GameAction action -> (model, submitGameEvent action) -- TODO: Update model too
+        SubmitGameEvent gameEvent currentTime -> let responseTime = (Time.posixToMillis currentTime) - table.lastDrawnTime
+          in (model, WebSocket.sendMessage (Game.Events.actionToJson gameEvent responseTime))
         _ -> (model, Cmd.none)
 
     EndGame info -> (model, Cmd.none) -- TODO
