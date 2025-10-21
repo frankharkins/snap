@@ -119,9 +119,10 @@ update msg model =
           ServerMessage.GameUpdate gameEvent -> let newModel = InGame (Game.Data.updateTable gameEvent table)
             in case gameEvent of
               Game.Events.SomethingWentWrong -> unexpectedError
-              Game.Events.CardDrawn _ ->  (newModel, updateLastDrawnTime)
-              Game.Events.PlayerTakesCenter _ ->  (newModel, updateLastDrawnTime)
-              Game.Events.GameRestarted ->  (newModel, updateLastDrawnTime)
+              Game.Events.CardDrawn _ -> (newModel, updateLastDrawnTime)
+              Game.Events.PlayerTakesCenter _ -> (newModel, updateLastDrawnTime)
+              Game.Events.GameRestarted -> (newModel, updateLastDrawnTime)
+              Game.Events.OtherPlayerResponded response -> (newModel, updateLastDrawnTime)
               _ -> (newModel, Cmd.none)
           _ -> unexpectedError
       ClientEvent event -> case event of

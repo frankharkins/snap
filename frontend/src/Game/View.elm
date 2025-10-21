@@ -22,7 +22,7 @@ viewTable table =
       Nothing
       "0px" -- (getCardDealOffset model (Just Opponent) True)
     )
-    , eventLog [] -- TODO: Add event log
+    , eventLog table.eventLog
     , (centerDeck
          table.centerDeck
          "0px" -- (getCardDealOffset model (getLastDrawnPlayer model) False)

@@ -12,6 +12,7 @@ type alias Table = {
   , centerDeck: List Game.Cards.Card
   , cardDrawnFrom: Maybe Player
   , lastDrawnTime: Int
+  , eventLog: List String
   }
 
 newTable : Game.Events.PlayerNumber -> Table
@@ -22,6 +23,7 @@ newTable playerNumber = {
   , centerDeck = []
   , cardDrawnFrom = Nothing
   , lastDrawnTime = 0
+  , eventLog = []
   }
 
 playerFromNumber : Table -> Game.Events.PlayerNumber -> Player
@@ -50,12 +52,36 @@ updateTable event table = case event of
   Game.Events.CardDrawn drawnEvent -> drawCard table drawnEvent.from drawnEvent.card
   Game.Events.PlayerTakesCenter playerNumber -> takeCenter table playerNumber
   Game.Events.GameRestarted -> newTable table.yourNumber
+  Game.Events.OtherPlayerResponded response -> { table
+    | eventLog = table.eventLog ++ [renderUserEvent table response.player response.action response.isMistake]
+    }
   _ -> table
 
 
-topDeckIcon : List Game.Cards.Card -> String
-topDeckIcon deck =
-  let maybeCard = List.head (List.reverse deck)
-  in case maybeCard of
-    Nothing -> ""
-    Just card -> Game.Cards.toString card
+renderUserEvent : Table -> Game.Events.PlayerNumber -> Game.Events.TimedUserAction -> Bool -> String
+renderUserEvent table playerNumber timedAction isMistake =
+    let renderedResponseTime = renderResponseTime timedAction.responseTime
+        player = playerFromNumber table playerNumber
+        playerName = if player == You then "You" else "Opponent"
+    in case timedAction.action of
+      Game.Events.Draw -> playerName ++ " drew " ++ renderedResponseTime
+      Game.Events.Snap -> case isMistake of
+        True -> playerName ++ " snapped 🤭"
+        False -> playerName ++ " snapped " ++ renderedResponseTime
+      Game.Events.NoResponse -> playerName ++ " didn't respond 💀"
+      _ -> ""
+
+renderResponseTime : Int -> String
+renderResponseTime responseTime =
+    "(" ++ (String.fromInt responseTime) ++ "ms " ++ (chooseResponseTimeEmoji responseTime) ++ ")"
+
+chooseResponseTimeEmoji : Int -> String
+chooseResponseTimeEmoji responseTime =
+        if responseTime < 500 then "🤯"
+        else if responseTime < 650 then "🔥"
+        else if responseTime < 700 then "🐇"
+        else if responseTime < 750 then "🤷"
+        else if responseTime < 800 then "🫤"
+        else if responseTime < 975 then "🐢"
+        else if responseTime < 1500 then "🐌"
+        else "🥔"

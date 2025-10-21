@@ -37,32 +37,6 @@ actionToJson action responseTime =
 
 
 
-renderUserAction : TimedUserAction -> Bool -> String
-renderUserAction timedAction isMistake =
-    let renderedResponseTime = renderResponseTime timedAction.responseTime
-    in case timedAction.action of
-      Draw -> "Draw " ++ renderedResponseTime
-      Snap -> case isMistake of
-        True -> "Snap 🤭"
-        False -> "Snap " ++ renderedResponseTime
-      NoResponse -> "No response 💀"
-      _ -> ""
-
-renderResponseTime : Int -> String
-renderResponseTime responseTime =
-    "(" ++ (String.fromInt responseTime) ++ "ms " ++ (chooseResponseTimeEmoji responseTime) ++ ")"
-
-chooseResponseTimeEmoji : Int -> String
-chooseResponseTimeEmoji responseTime =
-        if responseTime < 500 then "🤯"
-        else if responseTime < 650 then "🔥"
-        else if responseTime < 700 then "🐇"
-        else if responseTime < 750 then "🤷"
-        else if responseTime < 800 then "🫤"
-        else if responseTime < 975 then "🐢"
-        else if responseTime < 1500 then "🐌"
-        else "🥔"
-
 updateDecoder : JSD.Decoder ServerAction
 updateDecoder = JSD.oneOf [
   JSD.field "CardDrawn" (cardDrawnDecoder)
