@@ -20,19 +20,19 @@ viewTable table =
       Opponent
       table.opponentNumCards
       Nothing
-      "0px" -- (getCardDealOffset model (Just Opponent) True)
+      (getCardDealOffset table (Just Opponent) True)
     )
     , eventLog table.eventLog
     , (centerDeck
          table.centerDeck
-         "0px" -- (getCardDealOffset model (getLastDrawnPlayer model) False)
+         (getCardDealOffset table table.cardDrawnFrom False)
        )
     , (Html.Lazy.lazy4
         faceDownDeck
         You
         table.yourNumCards
         (Just Game.Events.Draw)
-        "0px" -- (getCardDealOffset model (Just You) True)
+        (getCardDealOffset table (Just You) True)
       )
     ]
 
@@ -133,6 +133,22 @@ centerDeck cards dealtCardOffset =
             ]
         )
     )
+
+
+getCardDealOffset : Game.Data.Table -> Maybe Game.Data.Player -> Bool -> String
+getCardDealOffset table maybePlayer invert =
+  let
+    coords = case maybePlayer of
+      Nothing -> (0, 0)
+      Just player -> case player of
+        You -> table.yourDeckOffset
+        Opponent -> table.opponentDeckOffset
+  in
+    [Tuple.first coords, Tuple.second coords]
+     |> List.map (\offset -> if invert then -offset else offset)
+     |> List.map floatToPx
+     |> List.map (\offset -> "calc(-50% + " ++ offset ++ ")")
+     |> String.join " "
 
 
 cssVariables : List (String, String) -> Attribute msg

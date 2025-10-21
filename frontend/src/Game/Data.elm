@@ -13,6 +13,11 @@ type alias Table = {
   , cardDrawnFrom: Maybe Player
   , lastDrawnTime: Int
   , eventLog: List String
+  -- We use the following to animate the cards moving between decks
+  -- TODO: This is a bit messy as split across here, view, and main
+  , centerDeckPosition: (Float, Float)
+  , yourDeckOffset: (Float, Float)
+  , opponentDeckOffset: (Float, Float)
   }
 
 newTable : Game.Events.PlayerNumber -> Table
@@ -24,6 +29,9 @@ newTable playerNumber = {
   , cardDrawnFrom = Nothing
   , lastDrawnTime = 0
   , eventLog = []
+  , centerDeckPosition = (0, 0)
+  , yourDeckOffset = (0, 0)
+  , opponentDeckOffset = (0, 0)
   }
 
 playerFromNumber : Table -> Game.Events.PlayerNumber -> Player
@@ -57,6 +65,17 @@ updateTable event table = case event of
     }
   _ -> table
 
+updateOffsets : Table -> Player -> (Float, Float) -> Table
+updateOffsets table player deckPosition =
+  let offset = calculateOffset table.centerDeckPosition deckPosition
+  in case player of
+    You -> { table | yourDeckOffset = offset }
+    Opponent -> { table | opponentDeckOffset = offset }
+
+
+calculateOffset : (Float, Float) -> (Float, Float) -> (Float, Float)
+calculateOffset a b =
+  ((Tuple.first b) - (Tuple.first a), (Tuple.second b) - (Tuple.second a))
 
 renderUserEvent : Table -> Game.Events.PlayerNumber -> Game.Events.TimedUserAction -> Bool -> String
 renderUserEvent table playerNumber timedAction isMistake =

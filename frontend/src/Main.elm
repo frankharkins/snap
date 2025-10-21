@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Browser.Dom as Dom
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -49,6 +50,7 @@ type ClientEvent
   -- Events triggered automatically
   | SetLastDrawTime Time.Posix
   | SubmitGameEvent Game.Events.Action Time.Posix
+  | GotElement String (Result Dom.Error Dom.Element)
 
 type Msg
   = ClientEvent ClientEvent
@@ -65,6 +67,14 @@ lostConnectionError = errorState "Lost connection to the server"
 
 updateLastDrawnTime : Cmd Msg
 updateLastDrawnTime = Task.perform (\t -> ClientEvent (SetLastDrawTime t)) Time.now
+
+getDeckPosition : Game.View.Deck -> Cmd Msg
+getDeckPosition deck = let id = Game.View.deckToId deck in
+  Task.attempt (\r -> ClientEvent (GotElement id r)) (Dom.getElement id)
+
+onStartGame : Cmd Msg
+onStartGame = Cmd.batch [ updateLastDrawnTime, getDeckPosition Game.View.Center ]
+
 
 -- To submit a game action, we need to get the current time
 submitGameEvent : Game.Events.Action -> Cmd Msg
@@ -95,7 +105,7 @@ update msg model =
         WebSocket.MessageReceived wsMsg -> case (ServerMessage.decode wsMsg) of
           ServerMessage.ServerFull -> errorState "The server is full"
           ServerMessage.GameNotFound -> errorState "Couldn't find that game"
-          ServerMessage.GameStarted data -> (InGame (Game.Data.newTable data.yourNumber), updateLastDrawnTime)
+          ServerMessage.GameStarted data -> (InGame (Game.Data.newTable data.yourNumber), onStartGame)
           ServerMessage.GameCreated data -> (WaitingForPlayer { otherPlayerId = String.fromInt data.other_player_id }, Cmd.none)
           _ -> unexpectedError
 
@@ -106,7 +116,7 @@ update msg model =
         WebSocket.ConnectionLost _ -> lostConnectionError
         WebSocket.ConnectionStarted _ -> unexpectedError
         WebSocket.MessageReceived wsMsg -> case (ServerMessage.decode wsMsg) of
-          ServerMessage.GameStarted data -> (InGame (Game.Data.newTable data.yourNumber), updateLastDrawnTime)
+          ServerMessage.GameStarted data -> (InGame (Game.Data.newTable data.yourNumber), onStartGame)
           ServerMessage.GameDestroyed -> unexpectedError
           _ -> unexpectedError
 
@@ -121,8 +131,8 @@ update msg model =
               Game.Events.SomethingWentWrong -> unexpectedError
               Game.Events.CardDrawn _ -> (newModel, updateLastDrawnTime)
               Game.Events.PlayerTakesCenter _ -> (newModel, updateLastDrawnTime)
-              Game.Events.GameRestarted -> (newModel, updateLastDrawnTime)
-              Game.Events.OtherPlayerResponded response -> (newModel, updateLastDrawnTime)
+              Game.Events.GameRestarted -> (newModel, onStartGame)
+              Game.Events.OtherPlayerResponded response -> (newModel, Cmd.none)
               _ -> (newModel, Cmd.none)
           _ -> unexpectedError
       ClientEvent event -> case event of
@@ -133,6 +143,17 @@ update msg model =
         GameAction action -> (model, submitGameEvent action) -- TODO: Update model too
         SubmitGameEvent gameEvent currentTime -> let responseTime = (Time.posixToMillis currentTime) - table.lastDrawnTime
           in (model, WebSocket.sendMessage (Game.Events.actionToJson gameEvent responseTime))
+        GotElement id result -> case (Game.View.idToDeck id) of
+          Nothing -> unexpectedError
+          Just deck -> case result of
+            Err _ -> unexpectedError
+            Ok element -> let position = (element.element.x, element.element.y) in case deck of
+              Game.View.Center -> (
+                InGame { table | centerDeckPosition = position }
+                , Cmd.batch [ getDeckPosition Game.View.Yours, getDeckPosition Game.View.Opponents ]
+                )
+              Game.View.Yours -> (InGame (Game.Data.updateOffsets table Game.Data.You position), Cmd.none)
+              Game.View.Opponents -> (InGame (Game.Data.updateOffsets table Game.Data.Opponent position), Cmd.none)
         _ -> (model, Cmd.none)
 
     EndGame info -> (model, Cmd.none) -- TODO
