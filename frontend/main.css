@@ -1,0 +1,265 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+body {
+  margin: 0;
+  padding: 0;
+
+  --font-size: 32px;
+  --font-family: "VT323", sans-serif;
+
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+
+  --black: #000;
+  --green: #0e402d;
+  --white: #f4f7f5;
+  --red: #a63d40;
+  --red-darker: #69181a;
+
+  --card-offset-x: 0px;
+  --card-offset-y: 0px;
+  --card-hand-to-center-offset: 0px 0px;
+  --card-center-to-hand-offset: 0px 0px;
+  --card-deal-to-hand-delay: 0s;
+  --card-rotation-z: 0deg;
+  --card-face-image: url("/images/front.bmp");
+}
+
+.fullscreen {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  background-color: var(--green);
+
+  /* Disable double-tap to zoom */
+  touch-action: manipulation;
+}
+
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+  height: 100%;
+  max-height: 1500px;
+  display: flex;
+  flex-direction: column;
+  overflow-x: visible;
+}
+
+header {
+    height: 80px;
+}
+
+h1 {
+    margin: 0;
+}
+
+.game {
+  flex-grow: 1;
+  min-height: 410px;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    "opponent-deck event-log event-log"
+    ". center-deck ."
+    ". . your-deck";
+  padding: 16px;
+  overflow-y: hidden;
+  overflow-x: visible;
+}
+
+.opponent-deck {
+    grid-area: opponent-deck;
+    position: relative;
+}
+
+.event-log {
+  grid-area: event-log;
+  display: flex;
+  flex-direction: column-reverse;
+
+  padding: 24px 64px;
+  margin-top: auto;
+  font-size: 20px;
+  height: 4lh;
+}
+
+@media (max-height: 950px) {
+  .event-log {
+      padding: 0;
+  }
+}
+
+.event {
+  color: var(--white);
+  animation: 15s 1 normal fadeOutWithDelay;
+  opacity: 0;
+}
+
+@keyframes fadeOutWithDelay {
+  0% {
+    opacity: 100%;
+  }
+  50% {
+    opacity: 100%;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.center-top-card {
+  animation: 0.4s 1 normal dealCard;
+  animation-timing-function: ease-out;
+  backface-visibility: hidden;
+  z-index: 1000;
+}
+
+.center-top-card-back-face {
+    animation: 0.4s 1 normal dealCard;
+    z-index: 999;
+    transform: rotateY(-180deg);
+}
+
+.card-in-hand {
+    animation: 0.4s 1 normal dealCardToHand;
+    animation-delay: var(--card-deal-to-hand-delay);
+    animation-fill-mode: both;
+}
+
+@keyframes dealCardToHand {
+  0% {
+    translate: var(--card-center-to-hand-offset);
+  }
+  100% {}
+}
+
+@keyframes dealCard {
+  0% {
+    translate: var(--card-hand-to-center-offset);
+    rotate: y -180deg;
+  }
+  100% {}
+}
+
+@keyframes dealCardBackFace {
+  0% {
+    translate: var(--card-hand-to-center-offset);
+    rotate: y -360deg;
+  }
+  100% {}
+}
+
+.center-deck {
+  grid-area: center-deck;
+  position: relative;
+}
+
+.your-deck {
+  grid-area: your-deck;
+  position: relative;
+}
+
+.card {
+  aspect-ratio: 63 / 88;
+  height: 352px;
+  box-sizing: border-box;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate:
+    calc(-50% + var(--card-offset-x))
+    calc(-50% + var(--card-offset-y));
+  rotate: y 0 z var(--card-rotation-z);
+  background-color: transparent;
+}
+
+.card-back {
+  background-image: url("/images/back.png");
+  background-size: cover;
+  image-rendering: pixelated;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);;
+}
+
+.card-front {
+    background-size: cover;
+    image-rendering: pixelated;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+    background-image: var(--card-face-image);
+}
+
+.card-face {
+    background-image: url("/images/front.bmp");
+  font-size: 48px;
+  left: 25%;
+  top: 25%;
+  transform: translate(25%, 25%);
+}
+
+/* Used to preserve space in center deck when no cards present */
+.card-ghost {
+  border: none;
+  box-shadow: none;
+}
+
+.will-change {
+  will-change: rotate;
+}
+
+.game-end-notification {
+    border: 2px solid var(--black);
+    background-color: var(--white);
+    margin: 24px;
+    text-align: center;
+}
+
+button.play-again {
+    border: 2px solid var(--red-darker);
+    background-color: var(--white);
+    font-size: var(--font-size);
+    font-family: var(--font-family);
+    text-align: center;
+}
+
+@media (max-height: 850px) and (min-width: 860px) {
+    .game {
+       grid-template-rows: 4lh 1fr 4lh;
+       grid-template-areas:
+         "opponent-deck center-deck event-log"
+         "opponent-deck center-deck your-deck"
+         ". center-deck your-deck";
+    }
+}
+
+@media (max-width: 860px) {
+    .game {
+       grid-template-rows: 4lh 1fr 1fr 1fr;
+       grid-template-areas:
+         "event-log event-log event-log"
+         "opponent-deck opponent-deck ."
+         "center-deck center-deck center-deck"
+         ". your-deck your-deck";
+    }
+
+    .card {
+        height: 176px;
+    }
+}
+
+@media (max-width: 860px) and (max-height: 850px) {
+    .body {
+        font-size: 22px;
+    }
+    .game {
+       grid-template-rows: 4lh 1fr 1fr 4lh;
+       grid-template-columns: 1fr 1fr;
+       grid-template-areas:
+         "event-log opponent-deck"
+         "center-deck opponent-deck"
+         "center-deck your-deck"
+         "center-deck your-deck";
+    }
+}

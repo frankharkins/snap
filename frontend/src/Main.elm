@@ -9,6 +9,7 @@ import Time
 
 import Game.Data
 import Game.Events
+import Game.View
 import WebSocket
 import ServerMessage
 import Task
@@ -117,6 +118,7 @@ update msg model =
           ServerMessage.GameDestroyed -> errorState "The game was destroyed"
           ServerMessage.GameUpdate gameEvent -> let newModel = InGame (Game.Data.updateTable gameEvent table)
             in case gameEvent of
+              Game.Events.SomethingWentWrong -> unexpectedError
               Game.Events.CardDrawn _ ->  (newModel, updateLastDrawnTime)
               Game.Events.PlayerTakesCenter _ ->  (newModel, updateLastDrawnTime)
               Game.Events.GameRestarted ->  (newModel, updateLastDrawnTime)
@@ -148,6 +150,15 @@ subscriptions _ = Sub.batch [
 
 -- VIEW
 
+appContainer : Html ClientEvent -> Html ClientEvent
+appContainer contents =
+  div [ class "fullscreen" ] [
+    div [ class "app" ] ([
+      header [] [ h1 [] [ text "Snap!" ] ]
+      , contents
+    ])
+  ]
+
 viewInitialScreen : String -> Html ClientEvent
 viewInitialScreen draftId =
   div []
@@ -167,20 +178,14 @@ displayMessage : String -> Html ClientEvent
 displayMessage message =
   div [] [ text message ]
 
-viewGame : Game.Data.Table -> Html Game.Events.Action
-viewGame table =
-  div [] [
-    button [ onClick Game.Events.Draw ] [ text "Draw" ]
-    , button [ onClick Game.Events.Snap ] [ text "Snap" ]
-    ]
-
 view : Model -> Html ClientEvent
-view model =
+view model = appContainer (
   case model of
     InitialScreen state -> viewInitialScreen state.draftId
     Connecting -> displayMessage "Connecting"
     Loading -> displayMessage "Loading"
     WaitingForPlayer data -> displayMessage ("Join this game with the code: " ++ data.otherPlayerId)
     ErrorScreen message -> displayMessage message
-    InGame table -> (viewGame table) |> Html.map GameAction
+    InGame table -> (Game.View.viewTable table) |> Html.map GameAction
     _ -> displayMessage "Not implemented yet"
+  )
