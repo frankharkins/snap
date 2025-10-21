@@ -56,10 +56,7 @@ pub enum OutputMessageType {
     PlayerTakesCenter(PlayerNumber),
     PlayerWins(PlayerNumber),
     SomethingWentWrong,
-    // usize is redundant, I just can't work out how to get an empty enum
-    // variant to serialize to "{\"GameRestarted\":null}" rather than just
-    // "GameRestarted"
-    GameRestarted(usize),
+    GameRestarted,
 }
 
 type OutputMessage = message::OutputMessage<PlayerNumber, OutputMessageType>;
@@ -176,7 +173,7 @@ impl manager::Game for Snap {
             return match message.message {
                 InputMessageType::PlayAgain => {
                     *self = Snap::default();
-                    self.to_all_players(OutputMessageType::GameRestarted(0))
+                    self.to_all_players(OutputMessageType::GameRestarted)
                 }
                 _ => log_invalid(message, "Game ended"),
             };

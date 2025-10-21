@@ -31,7 +31,7 @@ type Model
   | Connecting
   | Loading
   | InGame Game.Data.Table
-  | EndGame { winner: Game.Data.Player, playAgain: Bool }
+  | EndGame { winner: Game.Data.Player, playAgainPressed: Bool, yourNumber: Game.Events.PlayerNumber }
   | ErrorScreen String
 
 
@@ -133,14 +133,21 @@ update msg model =
               Game.Events.PlayerTakesCenter _ -> (newModel, updateLastDrawnTime)
               Game.Events.GameRestarted -> (newModel, onStartGame)
               Game.Events.OtherPlayerResponded response -> (newModel, Cmd.none)
-              _ -> (newModel, Cmd.none)
+              Game.Events.PlayerWins playerNumber -> (
+                EndGame {
+                  winner = Game.Data.playerFromNumber table playerNumber
+                  , playAgainPressed = False
+                  , yourNumber = table.yourNumber
+                  }
+                , Cmd.none
+                )
           _ -> unexpectedError
       ClientEvent event -> case event of
         SetLastDrawTime time -> (
           InGame { table | lastDrawnTime = Time.posixToMillis (Debug.log "time: " time) }
           , Cmd.none
           )
-        GameAction action -> (model, submitGameEvent action) -- TODO: Update model too
+        GameAction action -> (model, submitGameEvent action)
         SubmitGameEvent gameEvent currentTime -> let responseTime = (Time.posixToMillis currentTime) - table.lastDrawnTime
           in (model, WebSocket.sendMessage (Game.Events.actionToJson gameEvent responseTime))
         GotElement id result -> case (Game.View.idToDeck id) of
@@ -156,7 +163,23 @@ update msg model =
               Game.View.Opponents -> (InGame (Game.Data.updateOffsets table Game.Data.Opponent position), Cmd.none)
         _ -> (model, Cmd.none)
 
-    EndGame info -> (model, Cmd.none) -- TODO
+    EndGame info -> case msg of
+      ClientEvent event -> case event of
+        SubmitGameEvent gameEvent _ -> (model, WebSocket.sendMessage (Game.Events.actionToJson gameEvent 0))
+        GameAction action -> case action of
+          Game.Events.PlayAgain -> (EndGame { info | playAgainPressed = True }, submitGameEvent action)
+          _ -> (model, Cmd.none)
+        _ -> (model, Cmd.none)
+      WebSocketEvent event -> case event of
+        WebSocket.ConnectionLost _ -> lostConnectionError
+        WebSocket.ConnectionStarted _ -> unexpectedError
+        WebSocket.MessageReceived wsMsg -> case (ServerMessage.decode wsMsg) of
+          ServerMessage.GameDestroyed -> errorState "The game was destroyed"
+          ServerMessage.GameUpdate gameEvent -> case gameEvent of
+              Game.Events.GameRestarted -> (InGame (Game.Data.newTable info.yourNumber), onStartGame)
+              _ -> unexpectedError
+          _ -> unexpectedError
+
     ErrorScreen _ -> (model, Cmd.none)
 
 
@@ -200,6 +223,18 @@ displayMessage : String -> Html ClientEvent
 displayMessage message =
   div [] [ text message ]
 
+endGame : Game.Data.Player -> Bool -> Html ClientEvent
+endGame winner playAgainPressed =
+  let
+    message = case winner of
+      Game.Data.You -> "You win!"
+      Game.Data.Opponent -> "Opponent wins"
+  in div [] [
+    text message
+    , button [ disabled playAgainPressed, onClick (GameAction Game.Events.PlayAgain) ] [ text "Play again" ]
+    ]
+
+
 view : Model -> Html ClientEvent
 view model = appContainer (
   case model of
@@ -209,5 +244,5 @@ view model = appContainer (
     WaitingForPlayer data -> displayMessage ("Join this game with the code: " ++ data.otherPlayerId)
     ErrorScreen message -> displayMessage message
     InGame table -> (Game.View.viewTable table) |> Html.map GameAction
-    _ -> displayMessage "Not implemented yet"
+    EndGame info -> endGame info.winner info.playAgainPressed
   )
