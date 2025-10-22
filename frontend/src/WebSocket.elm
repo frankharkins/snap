@@ -12,7 +12,7 @@ type Event =
   | MessageReceived String
 
 baseUrl : String
-baseUrl = "ws://localhost:3030"
+baseUrl = "ws://snap-iegf.onrender.com"
 
 joinGameUrl : String -> String
 joinGameUrl id = baseUrl ++ "/join/" ++ id
