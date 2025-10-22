@@ -11,7 +11,7 @@ install: # Install everything needed to build this project
 	.venv/bin/pip install pillow==11.3.0
 	curl https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CnsqpG40F9JadbnoEwAIpthTg.ttf --output .bin/dm-sans.ttf
 
-	npm install uglify-js --global
+	# npm install uglify-js --global
 
 run: # Build the site and run the server locally, for testing things out
 	make cards
@@ -22,8 +22,8 @@ build: # Build and optimize for production
 	make cards
 
 	(cd frontend && ../.bin/elm make src/Main.elm --output=main.js --optimize)
-	uglifyjs frontend/main.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output frontend/main.min.js
-	mv frontend/main.min.js frontend/main.js
+	# uglifyjs frontend/main.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output frontend/main.min.js
+	# mv frontend/main.min.js frontend/main.js
 
 	(cd backend && cargo build --release)
 
