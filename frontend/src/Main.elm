@@ -47,6 +47,7 @@ type ClientEvent
   | JoinGame
   | CreateGame
   | GameAction Game.Events.Action
+  | DismissError
   -- Events triggered automatically
   | SetLastDrawTime Time.Posix
   | SubmitGameEvent Game.Events.Action Time.Posix
@@ -180,7 +181,11 @@ update msg model =
               _ -> unexpectedError
           _ -> unexpectedError
 
-    ErrorScreen _ -> (model, Cmd.none)
+    ErrorScreen _ -> case msg of
+        ClientEvent event -> case event of
+            DismissError -> init ()
+            _ -> (model, Cmd.none)
+        _ -> (model, Cmd.none)
 
 
 -- SUBSCRIPTIONS
@@ -206,30 +211,43 @@ appContainer contents =
 
 viewInitialScreen : String -> Html ClientEvent
 viewInitialScreen draftId =
-  div []
+  div [ class "non-game-container" ]
     [
-       input
-        [ type_ "text"
-        , placeholder "Game ID"
-        , onInput JoinGameIdChanged
-        , value draftId
+       div [ class "join-game" ] [
+         input
+          [ type_ "text"
+          , placeholder "Game ID"
+          , onInput JoinGameIdChanged
+          , value draftId
+          ]
+          []
+         , button [ onClick JoinGame ] [ text "Join" ]
         ]
-        []
-      , button [ onClick JoinGame ] [ text "Join" ]
-      , button [ onClick CreateGame ] [ text "Create" ]
+      , div [] [ text "or" ]
+      , button [ onClick CreateGame ] [ text "Start a new game" ]
     ]
 
 displayMessage : String -> Html ClientEvent
 displayMessage message =
-  div [] [ text message ]
+  div [ class "non-game-container" ] [ text message ]
+
+
+displayError : String -> Html ClientEvent
+displayError message =
+  div [ class "non-game-container" ] [
+    text ("Error: " ++ message)
+    , button [ onClick DismissError ] [ text "Ok" ]
+    ]
+
+
 
 endGame : Game.Data.Player -> Bool -> Html ClientEvent
 endGame winner playAgainPressed =
   let
     message = case winner of
-      Game.Data.You -> "You win!"
+      Game.Data.You -> "You win! 🎉"
       Game.Data.Opponent -> "Opponent wins"
-  in div [] [
+  in div [ class "non-game-container" ] [
     text message
     , button [ disabled playAgainPressed, onClick (GameAction Game.Events.PlayAgain) ] [ text "Play again" ]
     ]
@@ -241,8 +259,8 @@ view model = appContainer (
     InitialScreen state -> viewInitialScreen state.draftId
     Connecting -> displayMessage "Connecting"
     Loading -> displayMessage "Loading"
-    WaitingForPlayer data -> displayMessage ("Join this game with the code: " ++ data.otherPlayerId)
-    ErrorScreen message -> displayMessage message
+    WaitingForPlayer data -> displayMessage ("Tell a friend to join using the following code: " ++ data.otherPlayerId)
+    ErrorScreen message -> displayError message
     InGame table -> (Game.View.viewTable table) |> Html.map GameAction
     EndGame info -> endGame info.winner info.playAgainPressed
   )
