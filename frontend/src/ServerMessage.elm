@@ -17,9 +17,9 @@ type ServerMessage
 
 decode : String -> ServerMessage
 decode wsMsg =
-  let _ = (Debug.log "Server message: " wsMsg, ServerFull)
+  let _ = (wsMsg, ServerFull)
   in case JSD.decodeString serverMessageDecoder wsMsg of
-    Ok result -> (Debug.log "Decoded to: " result)
+    Ok result -> result
     Err _ -> UnknownMessage
 
 serverMessageDecoder : JSD.Decoder ServerMessage

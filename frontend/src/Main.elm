@@ -96,6 +96,7 @@ update msg model =
       ClientEvent _ -> (model, Cmd.none)
       WebSocketEvent event -> case event of
         WebSocket.ConnectionStarted _ -> (Loading, Cmd.none)
+        WebSocket.ConnectionLost _ -> errorState "Can't connect to the server"
         _ -> unexpectedError
 
     Loading -> case msg of
@@ -145,7 +146,7 @@ update msg model =
           _ -> unexpectedError
       ClientEvent event -> case event of
         SetLastDrawTime time -> (
-          InGame { table | lastDrawnTime = Time.posixToMillis (Debug.log "time: " time) }
+          InGame { table | lastDrawnTime = Time.posixToMillis time }
           , Cmd.none
           )
         GameAction action -> (model, submitGameEvent action)
