@@ -46,11 +46,12 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: visible;
-  padding: 0 32px;
 }
 
 header {
     height: 80px;
+    padding: 8px 32px;
+    box-sizing: border-box;
 }
 
 h1 {
@@ -63,6 +64,8 @@ h1 {
     max-width: 500px;
     text-align: center;
     margin: 0 auto;
+    padding: 32px;
+    box-sizing: border-box;
 }
 
 .join-game {
