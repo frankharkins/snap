@@ -3,6 +3,9 @@ name = "snap-backend"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "snap-backend"
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
