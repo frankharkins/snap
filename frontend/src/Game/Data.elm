@@ -19,7 +19,7 @@ type alias Table = {
   , yourDeckOffset: (Float, Float)
   , opponentDeckOffset: (Float, Float)
   -- For wiggling the cards on invalid draws
-  , wiggleCount: Int
+  , invalidDrawCount: Int
   }
 
 newTable : Game.Events.PlayerNumber -> Table
@@ -34,7 +34,7 @@ newTable playerNumber = {
   , centerDeckPosition = (0, 0)
   , yourDeckOffset = (0, 0)
   , opponentDeckOffset = (0, 0)
-  , wiggleCount = 0
+  , invalidDrawCount = 0
   }
 
 playerFromNumber : Table -> Game.Events.PlayerNumber -> Player
@@ -61,7 +61,15 @@ drawCard table playerNumber card =
 updateTable : Game.Events.ServerAction -> Table -> Table
 updateTable event table = case event of
   Game.Events.CardDrawn drawnEvent -> drawCard table drawnEvent.from drawnEvent.card
-  Game.Events.InvalidDraw -> { table | wiggleCount = table.wiggleCount + 1}
+  Game.Events.InvalidDraw -> {
+        table
+        | eventLog = case table.invalidDrawCount of
+            0 -> (table.eventLog ++ [ "It's not your turn" ])
+            2 -> (table.eventLog ++ [ "Stop trying to draw!" ])
+            5 -> (table.eventLog ++ [ "Do you just like seeing the cards shake?" ])
+            _ -> table.eventLog
+        , invalidDrawCount = table.invalidDrawCount + 1
+        }
   Game.Events.PlayerTakesCenter playerNumber -> takeCenter table playerNumber
   Game.Events.GameRestarted -> newTable table.yourNumber
   Game.Events.OtherPlayerResponded response -> { table

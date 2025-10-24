@@ -34,7 +34,7 @@ viewTable table =
         table.yourNumCards
         (Just Game.Events.Draw)
         (getCardDealOffset table (Just You) True)
-        table.wiggleCount
+        table.invalidDrawCount
       )
     ]
 
@@ -61,7 +61,7 @@ deckToId deck = case deck of
 
 
 faceDownDeck : Player -> Int -> Maybe Game.Events.Action -> String -> Int -> Html Game.Events.Action
-faceDownDeck deckType size maybeAction offsetCoordinates wiggleCount =
+faceDownDeck deckType size maybeAction offsetCoordinates invalidDrawCount =
   let
     deckClassName = if deckType == Opponent then "opponent-deck" else "your-deck"
     elementId = if deckType == Opponent then (deckToId Opponents) else (deckToId Yours)
@@ -71,9 +71,9 @@ faceDownDeck deckType size maybeAction offsetCoordinates wiggleCount =
     ([
       class deckClassName
       , Html.Attributes.id elementId
-      , class (case wiggleCount of
+      , class (case invalidDrawCount of
           0 -> ""
-          _ -> if (modBy 2 wiggleCount) == 0 then "wiggle" else "wiggle-alt"
+          _ -> if (modBy 2 invalidDrawCount) == 0 then "wiggle" else "wiggle-alt"
        )
      ]
     ++ case maybeAction of
