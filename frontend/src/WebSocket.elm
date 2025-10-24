@@ -11,8 +11,12 @@ type Event =
   | ConnectionLost ()
   | MessageReceived String
 
+
+-- This is a bit of a hack: We replace this in the final source with the
+-- development / testing URL
+-- TODO: Find a better way to do this
 baseUrl : String
-baseUrl = "wss://snap-image.onrender.com"
+baseUrl = "929b8e9b3748f2e04edf"
 
 joinGameUrl : String -> String
 joinGameUrl id = baseUrl ++ "/join/" ++ id

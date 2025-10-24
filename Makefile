@@ -19,12 +19,14 @@ install: # Install everything needed to build this project
 run: # Build the site and run the server locally, for testing things out
 	make cards
 	(cd frontend && ../.bin/elm make src/Main.elm --output=main.js)
+	(sed -i -e 's|929b8e9b3748f2e04edf|ws://localhost:3030|' frontend/main.js)
 	(cd backend && cargo run)
 
 build: # Build and optimize for production
 	make cards
 
 	(cd frontend && ../.bin/elm make src/Main.elm --output=main.js --optimize)
+	(sed -i -e 's|929b8e9b3748f2e04edf|wss://snap-image.onrender.com|' frontend/main.js)
 	uglifyjs frontend/main.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output frontend/main.min.js
 	minify frontend/index.html > frontend/index.min.html
 	minify frontend/main.css > frontend/main.min.css
