@@ -20,6 +20,7 @@ type alias TimedUserAction = {
 
 type ServerAction
   = CardDrawn { from: PlayerNumber, card: Game.Cards.Card }
+  | InvalidDraw
   | OtherPlayerResponded { player: PlayerNumber, action: TimedUserAction, isMistake: Bool }
   | PlayerTakesCenter PlayerNumber
   | PlayerWins PlayerNumber
@@ -83,6 +84,7 @@ unitTypeDecoder : JSD.Decoder ServerAction
 unitTypeDecoder = JSD.string |> (
   JSD.map (\s -> case s of
       "GameRestarted" -> GameRestarted
+      "InvalidDraw" -> InvalidDraw
       "SomethingWentWrong" -> SomethingWentWrong
       _ -> SomethingWentWrong
     )

@@ -55,6 +55,7 @@ pub enum OutputMessageType {
     },
     PlayerTakesCenter(PlayerNumber),
     PlayerWins(PlayerNumber),
+    InvalidDraw,
     SomethingWentWrong,
     GameRestarted,
 }
@@ -183,7 +184,10 @@ impl manager::Game for Snap {
         match message.message {
             InputMessageType::Draw(_) => {
                 if message.sender != self.player_turn {
-                    return log_invalid(message, "Not this player's turn");
+                    return vec![message::OutputMessage {
+                        recipient: message.sender,
+                        message: OutputMessageType::InvalidDraw,
+                    }]
                 }
             }
             _ => {}

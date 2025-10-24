@@ -18,6 +18,8 @@ type alias Table = {
   , centerDeckPosition: (Float, Float)
   , yourDeckOffset: (Float, Float)
   , opponentDeckOffset: (Float, Float)
+  -- For wiggling the cards on invalid draws
+  , wiggleCount: Int
   }
 
 newTable : Game.Events.PlayerNumber -> Table
@@ -32,6 +34,7 @@ newTable playerNumber = {
   , centerDeckPosition = (0, 0)
   , yourDeckOffset = (0, 0)
   , opponentDeckOffset = (0, 0)
+  , wiggleCount = 0
   }
 
 playerFromNumber : Table -> Game.Events.PlayerNumber -> Player
@@ -58,6 +61,7 @@ drawCard table playerNumber card =
 updateTable : Game.Events.ServerAction -> Table -> Table
 updateTable event table = case event of
   Game.Events.CardDrawn drawnEvent -> drawCard table drawnEvent.from drawnEvent.card
+  Game.Events.InvalidDraw -> { table | wiggleCount = table.wiggleCount + 1}
   Game.Events.PlayerTakesCenter playerNumber -> takeCenter table playerNumber
   Game.Events.GameRestarted -> newTable table.yourNumber
   Game.Events.OtherPlayerResponded response -> { table

@@ -15,24 +15,26 @@ import Html.Events.Extra.Touch as Touch
 viewTable : Table -> Html Game.Events.Action
 viewTable table =
   div [ class "game" ] [
-    (Html.Lazy.lazy4
+    (Html.Lazy.lazy5
       faceDownDeck
       Opponent
       table.opponentNumCards
       Nothing
       (getCardDealOffset table (Just Opponent) True)
+      0
     )
     , eventLog table.eventLog
     , (centerDeck
          table.centerDeck
          (getCardDealOffset table table.cardDrawnFrom False)
        )
-    , (Html.Lazy.lazy4
+    , (Html.Lazy.lazy5
         faceDownDeck
         You
         table.yourNumCards
         (Just Game.Events.Draw)
         (getCardDealOffset table (Just You) True)
+        table.wiggleCount
       )
     ]
 
@@ -58,15 +60,22 @@ deckToId deck = case deck of
 
 
 
-faceDownDeck : Player -> Int -> Maybe Game.Events.Action -> String -> Html Game.Events.Action
-faceDownDeck deckType size maybeAction offsetCoordinates =
+faceDownDeck : Player -> Int -> Maybe Game.Events.Action -> String -> Int -> Html Game.Events.Action
+faceDownDeck deckType size maybeAction offsetCoordinates wiggleCount =
   let
     deckClassName = if deckType == Opponent then "opponent-deck" else "your-deck"
     elementId = if deckType == Opponent then (deckToId Opponents) else (deckToId Yours)
     cardOffset = (-0.4, -0.6)
   in
   div
-    ([class deckClassName, Html.Attributes.id elementId]
+    ([
+      class deckClassName
+      , Html.Attributes.id elementId
+      , class (case wiggleCount of
+          0 -> ""
+          _ -> if (modBy 2 wiggleCount) == 0 then "wiggle" else "wiggle-alt"
+       )
+     ]
     ++ case maybeAction of
       Just action -> [
           onClick action

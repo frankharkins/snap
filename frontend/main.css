@@ -180,6 +180,22 @@ button {
     animation-fill-mode: both;
 }
 
+@keyframes wiggle {
+    0% { translate: 0 }
+    25% { translate: -6px 5px }
+    50% { translate: 10px -2px }
+    75% { translate: -6px 1px }
+    100% { translate: 0px }
+}
+
+@keyframes wiggleAlt {
+    0% { translate: 0 }
+    25% { translate: 6px 2px }
+    50% { translate: -8px -2px }
+    75% { translate: 10px 1px }
+    100% { translate: 0px }
+}
+
 @keyframes dealCardToHand {
   0% {
     translate: var(--card-center-to-hand-offset);
@@ -201,6 +217,14 @@ button {
     rotate: y -360deg;
   }
   100% {}
+}
+
+.wiggle {
+    animation: 0.2s 1 normal wiggle;
+}
+
+.wiggle-alt {
+    animation: 0.2s 1 normal wiggleAlt;
 }
 
 .center-deck {

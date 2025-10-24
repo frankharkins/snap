@@ -133,6 +133,7 @@ update msg model =
             in case gameEvent of
               Game.Events.SomethingWentWrong -> unexpectedError
               Game.Events.CardDrawn _ -> (newModel, updateLastDrawnTime)
+              Game.Events.InvalidDraw -> (newModel, updateLastDrawnTime)
               Game.Events.PlayerTakesCenter _ -> (newModel, updateLastDrawnTime)
               Game.Events.GameRestarted -> (newModel, onStartGame)
               Game.Events.OtherPlayerResponded response -> (newModel, Cmd.none)
