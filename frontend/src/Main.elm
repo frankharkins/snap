@@ -31,7 +31,7 @@ type Model
   | Connecting
   | Loading
   | InGame Game.Data.Table
-  | EndGame { winner: Game.Data.Player, playAgainPressed: Bool, yourNumber: Game.Events.PlayerNumber }
+  | EndGame Game.Data.Table { winner: Game.Data.Player, playAgainPressed: Bool, yourNumber: Game.Events.PlayerNumber }
   | ErrorScreen String
 
 
@@ -52,6 +52,7 @@ type ClientEvent
   | SetLastDrawTime Time.Posix
   | SubmitGameEvent Game.Events.Action Time.Posix
   | GotElement String (Result Dom.Error Dom.Element)
+  | NoOp
 
 type Msg
   = ClientEvent ClientEvent
@@ -136,7 +137,7 @@ update msg model =
               Game.Events.GameRestarted -> (newModel, onStartGame)
               Game.Events.OtherPlayerResponded response -> (newModel, Cmd.none)
               Game.Events.PlayerWins playerNumber -> (
-                EndGame {
+                EndGame table {
                   winner = Game.Data.playerFromNumber table playerNumber
                   , playAgainPressed = False
                   , yourNumber = table.yourNumber
@@ -165,11 +166,11 @@ update msg model =
               Game.View.Opponents -> (InGame (Game.Data.updateOffsets table Game.Data.Opponent position), Cmd.none)
         _ -> (model, Cmd.none)
 
-    EndGame info -> case msg of
+    EndGame table info -> case msg of
       ClientEvent event -> case event of
         SubmitGameEvent gameEvent _ -> (model, WebSocket.sendMessage (Game.Events.actionToJson gameEvent 0))
         GameAction action -> case action of
-          Game.Events.PlayAgain -> (EndGame { info | playAgainPressed = True }, submitGameEvent action)
+          Game.Events.PlayAgain -> (EndGame table { info | playAgainPressed = True }, submitGameEvent action)
           _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
       WebSocketEvent event -> case event of
@@ -201,13 +202,12 @@ subscriptions _ = Sub.batch [
 
 -- VIEW
 
-appContainer : Html ClientEvent -> Html ClientEvent
+appContainer : List (Html ClientEvent) -> Html ClientEvent
 appContainer contents =
   div [ class "fullscreen" ] [
     div [ class "app" ] ([
       header [] [ h1 [] [ text "Snap!" ] ]
-      , contents
-    ])
+    ] ++ contents)
   ]
 
 viewInitialScreen : String -> Html ClientEvent
@@ -242,26 +242,29 @@ displayError message =
 
 
 
-endGame : Game.Data.Player -> Bool -> Html ClientEvent
-endGame winner playAgainPressed =
+endGame : Game.Data.Table -> Game.Data.Player -> Bool -> List (Html ClientEvent)
+endGame table winner playAgainPressed =
   let
     message = case winner of
       Game.Data.You -> "You win! 🎉"
       Game.Data.Opponent -> "Opponent wins"
-  in div [ class "non-game-container" ] [
-    text message
-    , button [ disabled playAgainPressed, onClick (GameAction Game.Events.PlayAgain) ] [ text "Play again" ]
+  in [
+    div [ class "modal" ] [
+      text message
+      , button [ disabled playAgainPressed, onClick (GameAction Game.Events.PlayAgain) ] [ text "Play again" ]
+      ]
+    , (Game.View.viewTable table) |> Html.map (\_ -> NoOp)
     ]
 
 
 view : Model -> Html ClientEvent
 view model = appContainer (
   case model of
-    InitialScreen state -> viewInitialScreen state.draftId
-    Connecting -> displayMessage "Connecting"
-    Loading -> displayMessage "Loading"
-    WaitingForPlayer data -> displayMessage ("Tell a friend to join using the following code: " ++ data.otherPlayerId)
-    ErrorScreen message -> displayError message
-    InGame table -> (Game.View.viewTable table) |> Html.map GameAction
-    EndGame info -> endGame info.winner info.playAgainPressed
+    InitialScreen state -> [ viewInitialScreen state.draftId ]
+    Connecting -> [ displayMessage "Connecting" ]
+    Loading -> [ displayMessage "Loading" ]
+    WaitingForPlayer data -> [ displayMessage ("Tell a friend to join using the following code: " ++ data.otherPlayerId) ]
+    ErrorScreen message -> [ displayError message ]
+    InGame table -> [ (Game.View.viewTable table) |> Html.map GameAction ]
+    EndGame table info -> endGame table info.winner info.playAgainPressed
   )
