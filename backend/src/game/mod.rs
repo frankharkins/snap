@@ -201,6 +201,11 @@ impl manager::Game for Snap {
                 // We've already checked
                 InputMessageType::Draw(_) => self.draw_card(),
                 InputMessageType::Snap(_) => {
+                    if self.center_pile.is_empty() {
+                        // Player has made an incorrect snap, but there are no
+                        // cards to take so we ignore it
+                        return vec![];
+                    }
                     // Player has made an incorrect snap; they take the center
                     let mut messages =
                         self.to_all_players(OutputMessageType::OtherPlayerResponded {
