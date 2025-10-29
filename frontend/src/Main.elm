@@ -259,11 +259,11 @@ endGame table winner playAgainPressed =
       Game.Data.You -> "You win! 🎉"
       Game.Data.Opponent -> "Opponent wins"
   in [
-    div [ class "modal" ] [
+    (Game.View.viewTable table) |> Html.map (\_ -> NoOp)
+    , div [ class "modal" ] [
       text message
       , button [ disabled playAgainPressed, onClick (GameAction Game.Events.PlayAgain) ] [ text "Play again" ]
       ]
-    , (Game.View.viewTable table) |> Html.map (\_ -> NoOp)
     ]
 
 

@@ -57,7 +57,7 @@ body {
     width: 30%;
     min-width: 200px;
     background: var(--green);
-    border: 1px solid var(--black);
+    border: 2px solid var(--black);
     padding: 32px;
     text-align: center;
     z-index: 10000;
