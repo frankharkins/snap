@@ -229,9 +229,11 @@ viewInitialScreen draftId =
       , button [ onClick CreateGame ] [ text "Start a new game" ]
     ]
 
-displayMessage : String -> Html ClientEvent
+displayMessage : List String -> Html ClientEvent
 displayMessage message =
-  div [ class "non-game-container" ] [ text message ]
+  div [ class "non-game-container" ] (
+    message |> List.map (\t -> p [] [ text t ])
+  )
 
 
 displayError : String -> Html ClientEvent
@@ -262,9 +264,9 @@ view : Model -> Html ClientEvent
 view model = appContainer (
   case model of
     InitialScreen state -> [ viewInitialScreen state.draftId ]
-    Connecting -> [ displayMessage "Connecting" ]
-    Loading -> [ displayMessage "Loading" ]
-    WaitingForPlayer data -> [ displayMessage ("Tell a friend to join using the following code: " ++ data.otherPlayerId) ]
+    Connecting -> [ displayMessage [ "Connecting...", "(This can sometimes take a minute as the service spins down when inactive)" ] ]
+    Loading -> [ displayMessage [ "Loading" ] ]
+    WaitingForPlayer data -> [ displayMessage [ "Tell a friend to join using the following code: " ++ data.otherPlayerId ] ]
     ErrorScreen message -> [ displayError message ]
     InGame table -> [ (Game.View.viewTable table) |> Html.map GameAction ]
     EndGame table info -> endGame table info.winner info.playAgainPressed
