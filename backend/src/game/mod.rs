@@ -265,6 +265,9 @@ impl manager::Game for Snap {
                     InputMessageType::Snap(_) => {
                         let loser = (fastest_player + 1) % 2;
                         server_msgs.extend(self.player_takes_center(loser));
+                        if self.has_ended() {
+                            server_msgs.extend(self.to_all_players(OutputMessageType::PlayerWins(self.player_turn)));
+                        }
                         server_msgs
                     }
                 }
