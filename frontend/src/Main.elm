@@ -207,7 +207,14 @@ appContainer : List (Html ClientEvent) -> Html ClientEvent
 appContainer contents =
   div [ class "fullscreen" ] [
     div [ class "app" ] ([
-      header [] [ h1 [] [ text "Snap!" ] ]
+      header [] [
+        h1 [] [ text "Snap!" ]
+        , span [ class "author" ] [
+          text "by"
+          , text " "
+          , a [ href "https://frankharkins.github.io" ] [ text "Frank Harkins" ]
+        ]
+      ]
     ] ++ contents)
   ]
 

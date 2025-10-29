@@ -32,6 +32,7 @@ body {
   left: 0;
   right: 0;
 
+  color: var(--white);
   background-color: var(--green);
 
   /* Disable double-tap to zoom */
@@ -66,6 +67,16 @@ header {
     height: 80px;
     padding: 8px 32px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.author, .author > a {
+    display: inline-block;
+    font-size: calc(var(--font-size) * 0.8);
+    color: var(--white);
 }
 
 h1 {
@@ -96,8 +107,9 @@ input {
 }
 
 button {
-    border: 2px solid var(--red);
+    color: var(--black);
     background-color: var(--white);
+    border: 2px solid var(--red);
     font-family: var(--font-family);
     font-size: var(--font-size);
     margin-top: 8px;
