@@ -22,19 +22,24 @@ run: # Build the site and run the server locally, for testing things out
 	(sed -i -e 's|929b8e9b3748f2e04edf|ws://localhost:3030|' frontend/main.js)
 	(cd backend && cargo run)
 
-build: # Build and optimize for production
+build-frontend: # Build and optimize for production
+	rm -rf frontend/build
+	mkdir frontend/build
+
 	make cards
+	cp -R frontend/images frontend/build
 
 	(cd frontend && ../.bin/elm make src/Main.elm --output=main.js --optimize)
 	(sed -i -e 's|929b8e9b3748f2e04edf|wss://snap-image.onrender.com|' frontend/main.js)
-	uglifyjs frontend/main.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output frontend/main.min.js
-	minify frontend/index.html > frontend/index.min.html
-	minify frontend/main.css > frontend/main.min.css
+	uglifyjs frontend/main.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output frontend/build/main.js
+	minify frontend/index.html > frontend/build/index.html
+	minify frontend/main.css > frontend/build/main.css
 
+build:
+	make build-frontend
 	(cd backend && cargo build --release --target x86_64-unknown-linux-musl)
 
-	docker build --no-cache . -t "frankharkins/personal:snap"
-	rm frontend/*.min.*
+	docker build --no-cache . -t "frankharkins/snap:latest"
 
 test:
 	(cd backend && cargo test)

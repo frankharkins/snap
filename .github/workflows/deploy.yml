@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages and Render
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    environment:
+      name: push
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install other dependencies
+        run: make install
+
+      - name: build
+        run: |
+          make build-frontend
+
+      - name: Upload frontend
+        id: pages-artifact-upload
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'frontend/build/'
+
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ vars.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # - name: Push Docker image
+      #   run: |
+      #     docker push frankharkins/snap:latest
+
+  deploy:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: deploy
+      url: ${{ steps.pages-artifact-upload.outputs.page_url }}
+
+    steps:
+      - name: Deploy pages
+        id: pages-artifact-upload
+        uses: actions/deploy-pages@v4
+
+      - name: Deploy render
+        run: curl ${{ secrets.RENDER_DEPLOY_TRIGGER }}
