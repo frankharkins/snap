@@ -1,5 +1,7 @@
 FROM --platform=linux/amd64 gcr.io/distroless/static-debian12
 
+USER 1001
+
 WORKDIR /usr/app
 
 ADD ./backend/target/x86_64-unknown-linux-musl/release/snap-backend ./backend/snap-backend
