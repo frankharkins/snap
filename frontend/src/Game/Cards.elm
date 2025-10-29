@@ -119,4 +119,4 @@ cardFace card =
       Diamonds -> "diamonds"
       Spades -> "spades"
   in
-    "url(\"/images/faces/" ++ value ++ "-" ++ suit ++ ".png\")"
+    "url(\"/snap/images/faces/" ++ value ++ "-" ++ suit ++ ".png\")"

@@ -264,7 +264,7 @@ button {
 }
 
 .card-back {
-  background-image: url("/images/back.png");
+  background-image: url("/snap/images/back.png");
   background-size: cover;
   image-rendering: pixelated;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);;
@@ -278,7 +278,6 @@ button {
 }
 
 .card-face {
-    background-image: url("/images/front.bmp");
   font-size: 48px;
   left: 25%;
   top: 25%;

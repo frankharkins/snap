@@ -79,7 +79,7 @@ async fn main() {
     let index_css = warp::path("main.css").and(
         warp::fs::file("../frontend/main.css")
     );
-    let images = warp::path("images").and(
+    let images = warp::path("snap").and(warp::path("images")).and(
         warp::fs::dir ("../frontend/images")
     );
     let routes = index.or(index_js).or(index_css).or(images).or(create).or(join);
