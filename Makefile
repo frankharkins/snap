@@ -41,6 +41,9 @@ build:
 
 	docker build --no-cache . -t "frankharkins/snap:latest"
 
+deploy:
+	gh workflow run "deploy.yml"
+
 test:
 	(cd backend && cargo test)
 
