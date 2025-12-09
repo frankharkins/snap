@@ -54,13 +54,29 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 30%;
-    min-width: 200px;
+    width: max-content;
+    max-height: 90vh;
+    max-width: 33vw;
+    overflow-y: scroll;
     background: var(--green);
     border: 2px solid var(--black);
     padding: 32px;
     text-align: center;
     z-index: 10000;
+    box-shadow: 10px 10px var(--black);
+}
+
+@media (max-width: 1050px) {
+    .modal {
+       max-width: 66vw;
+    }
+}
+
+@media (max-width: 860px) {
+    .modal {
+       padding: 8px;
+       max-width: 90vw;
+    }
 }
 
 header {
@@ -84,6 +100,16 @@ h1 {
     font-size: 48px;
 }
 
+ul {
+    list-style: square;
+    text-align: left;
+}
+
+a {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .non-game-container {
     width: 100%;
     max-width: 500px;
@@ -96,6 +122,10 @@ h1 {
 .join-game {
     display: flex;
     flex-direction: column;
+}
+
+.how-to-play {
+    font-size: calc(var(--font-size) * 0.8);
 }
 
 input {
@@ -113,6 +143,7 @@ button {
     font-family: var(--font-family);
     font-size: var(--font-size);
     margin-top: 8px;
+    margin-bottom: 8px;
     padding: 8px;
     cursor: pointer;
     width: 100%;

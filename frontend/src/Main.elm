@@ -26,7 +26,7 @@ main =
     }
 
 type Model
-  = InitialScreen { draftId: String }
+  = InitialScreen { draftId: String, instructionsOpen: Bool }
   | WaitingForPlayer { otherPlayerId: String }
   | Connecting
   | Loading
@@ -37,7 +37,7 @@ type Model
 
 init : () -> ( Model, Cmd Msg )
 init _ = (
-  InitialScreen { draftId = "" }
+  InitialScreen { draftId = "", instructionsOpen = False }
   , Cmd.none
   )
 
@@ -48,6 +48,8 @@ type ClientEvent
   | CreateGame
   | GameAction Game.Events.Action
   | DismissError
+  | OpenInstructions
+  | DismissInstructions
   -- Events triggered automatically
   | SetLastDrawTime Time.Posix
   | SubmitGameEvent Game.Events.Action Time.Posix
@@ -88,9 +90,11 @@ update msg model =
     InitialScreen state -> case msg of
       WebSocketEvent _ -> (model, Cmd.none)
       ClientEvent event -> case event of
-        JoinGameIdChanged newDraft -> (InitialScreen { draftId = newDraft }, Cmd.none)
+        JoinGameIdChanged newDraft -> (InitialScreen { state | draftId = newDraft }, Cmd.none)
         JoinGame -> (Connecting, WebSocket.connect (WebSocket.joinGameUrl state.draftId))
         CreateGame -> (Connecting, WebSocket.connect WebSocket.createGameUrl)
+        OpenInstructions -> (InitialScreen { state | instructionsOpen = True }, Cmd.none)
+        DismissInstructions -> (InitialScreen { state | instructionsOpen = False }, Cmd.none)
         _ -> (model, Cmd.none)
 
     Connecting -> case msg of
@@ -218,11 +222,13 @@ appContainer contents =
     ] ++ contents)
   ]
 
-viewInitialScreen : String -> Html ClientEvent
-viewInitialScreen draftId =
+viewInitialScreen : String -> Bool -> Html ClientEvent
+viewInitialScreen draftId modalOpen =
   div [ class "non-game-container" ]
-    [
-       div [ class "join-game" ] [
+    ([
+       button [ onClick CreateGame ] [ text "Start a new game" ]
+       , div [] [ text "or" ]
+       , div [ class "join-game" ] [
          input
           [ type_ "text"
           , placeholder "Game ID"
@@ -230,11 +236,25 @@ viewInitialScreen draftId =
           , value draftId
           ]
           []
-         , button [ onClick JoinGame ] [ text "Join" ]
+          , button [ onClick JoinGame ] [ text "Join existing game" ]
+          , div [] ([
+            text "or read "
+            , a [ onClick OpenInstructions ] [ text "how to play" ]
+          ])
         ]
-      , div [] [ text "or" ]
-      , button [ onClick CreateGame ] [ text "Start a new game" ]
-    ]
+    ] ++ if modalOpen then [
+      div [ class "modal", class "how-to-play" ] [
+        h3 [] [ text "How to play" ]
+        , ul [ ] [
+          li [] [ text "When it's your turn, tap the deck closest to you to draw a card " ]
+          , li [] [ text "If the same card value appears twice in a row (for example, two threes), then tap the face-up deck to snap" ]
+          , li [] [ text "If a player snaps faster than you, you take the deck" ]
+          , li [] [ text "The winner is the player that gets rid of their cards first" ]
+        ]
+        , p [] [ text "To play, start a new game and give a friend the code so they can join you." ]
+        , button [ onClick DismissInstructions ] [ text "Got it" ]
+      ]
+    ] else [])
 
 displayMessage : List String -> Html ClientEvent
 displayMessage message =
@@ -270,7 +290,7 @@ endGame table winner playAgainPressed =
 view : Model -> Html ClientEvent
 view model = appContainer (
   case model of
-    InitialScreen state -> [ viewInitialScreen state.draftId ]
+    InitialScreen state -> [ viewInitialScreen state.draftId state.instructionsOpen ]
     Connecting -> [ displayMessage [ "Connecting...", "(This can sometimes take a minute as the service spins down when inactive)" ] ]
     Loading -> [ displayMessage [ "Loading" ] ]
     WaitingForPlayer data -> [ displayMessage [ "Tell a friend to join using the following code: " ++ data.otherPlayerId ] ]
